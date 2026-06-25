@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ subject.name }} — Attendance{% endblock %}
+{% block page_title %}{{ subject.name[:30] }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('attendance.index') }}" class="btn btn-ghost btn-sm" style="margin-bottom:16px">← Back</a>
+
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div style="text-align:center;padding:8px">
+      <div style="font-size:56px;font-weight:900;letter-spacing:-3px;color:{% if subject.attendance_status=='safe' %}var(--green){% elif subject.attendance_status=='warning' %}var(--yellow){% else %}var(--red){% endif %}">{{ subject.attendance_percentage }}%</div>
+      <span class="badge badge-{{ subject.attendance_status }}" style="margin-bottom:16px">{{ subject.attendance_status.upper() }}</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px">
+        <div style="background:var(--bg3);border-radius:10px;padding:12px">
+          <div style="font-size:22px;font-weight:800">{{ subject.total_classes }}</div>
+          <div style="font-size:10px;color:var(--text3)">Total</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:12px">
+          <div style="font-size:22px;font-weight:800;color:var(--green)">{{ subject.attended_classes }}</div>
+          <div style="font-size:10px;color:var(--text3)">Attended</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:12px">
+          <div style="font-size:22px;font-weight:800;color:var(--red)">{{ subject.total_classes - subject.attended_classes }}</div>
+          <div style="font-size:10px;color:var(--text3)">Missed</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:{% if subject.safe_to_miss > 0 %}rgba(34,197,94,0.08){% else %}rgba(239,68,68,0.08){% endif %};border:1px solid {% if subject.safe_to_miss > 0 %}rgba(34,197,94,0.2){% else %}rgba(239,68,68,0.2){% endif %};border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:{% if subject.safe_to_miss > 0 %}var(--green){% else %}var(--red){% endif %}">{{ subject.safe_to_miss }}</div>
+        <div style="font-size:11px;color:var(--text2)">Classes can miss</div>
+      </div>
+      <div style="background:{% if subject.classes_to_attend == 0 %}rgba(34,197,94,0.08){% else %}rgba(239,68,68,0.08){% endif %};border:1px solid {% if subject.classes_to_attend == 0 %}rgba(34,197,94,0.2){% else %}rgba(239,68,68,0.2){% endif %};border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:{% if subject.classes_to_attend == 0 %}var(--green){% else %}var(--red){% endif %}">{{ subject.classes_to_attend }}</div>
+        <div style="font-size:11px;color:var(--text2)">Must attend</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">📈 Attendance Forecast</div>
+    <canvas id="forecastChart" height="220"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📅 Attendance History</div>
+    <span style="font-size:12px;color:var(--text3)">{{ records|length }} records</span>
+  </div>
+  {% if records %}
+  <table class="table">
+    <thead><tr><th>Date</th><th>Total</th><th>Attended</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for r in records %}
+    <tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px">{{ r.date.strftime('%d %b %Y') }}</td>
+      <td>{{ r.total }}</td>
+      <td style="color:{% if r.attended == r.total %}var(--green){% elif r.attended == 0 %}var(--red){% else %}var(--yellow){% endif %}">{{ r.attended }}</td>
+      <td><span class="badge {% if r.attended == r.total %}badge-safe{% elif r.attended == 0 %}badge-critical{% else %}badge-warning{% endif %}">{% if r.attended == r.total %}Present{% elif r.attended == 0 %}Absent{% else %}Partial{% endif %}</span></td>
+      <td style="font-size:12px;color:var(--text3)">{{ r.note or '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:24px;color:var(--text3)">No records yet. Start marking attendance!</div>
+  {% endif %}
+</div>
+
+{% block scripts %}
+<script>
+const forecast = {{ forecast | tojson }};
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+const textColor = isDark ? '#9090a8' : '#5a5a78';
+
+new Chart(document.getElementById('forecastChart'), {
+  type: 'line',
+  data: {
+    labels: forecast.map(f => 'Class +' + f.class),
+    datasets: [
+      { label: 'If Attend', data: forecast.map(f => f.if_attend), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.4, fill: false, pointRadius: 2 },
+      { label: 'If Skip', data: forecast.map(f => f.if_skip), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.4, fill: false, pointRadius: 2 },
+      { label: '75% Line', data: forecast.map(() => 75), borderColor: '#f59e0b', borderDash: [5,5], pointRadius: 0, fill: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: textColor, boxWidth: 12, font: { size: 11 } } } },
+    scales: {
+      y: { min: 50, max: 100, grid: { color: gridColor }, ticks: { color: textColor, callback: v => v+'%' } },
+      x: { grid: { display: false }, ticks: { color: textColor, maxTicksLimit: 8 } }
+    }
+  }
+});
+</script>
+{% endblock %}
+{% endblock %}

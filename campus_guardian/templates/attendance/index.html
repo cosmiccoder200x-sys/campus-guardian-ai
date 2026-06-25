@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Attendance Guardian{% endblock %}
+{% block page_title %}Attendance Guardian{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <div>
+    <div style="font-size:13px;color:var(--text2)">Track every class. Stay above 75%.</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bulkModal').style.display='flex'">📥 Bulk Update</button>
+    <a href="{{ url_for('attendance.add_subject') }}" class="btn btn-primary btn-sm">+ Add Subject</a>
+  </div>
+</div>
+
+{% if not subjects %}
+<div class="card" style="text-align:center;padding:48px">
+  <div style="font-size:40px;margin-bottom:12px">📋</div>
+  <div style="font-weight:600;margin-bottom:8px">No subjects yet</div>
+  <a href="{{ url_for('dashboard.setup') }}" class="btn btn-primary">Load Semester Subjects</a>
+</div>
+{% else %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+  {% for s in subjects %}
+  <div class="subject-card" id="card-{{ s.id }}">
+    <div class="subject-card-top">
+      <div style="display:flex;gap:10px;flex:1;min-width:0">
+        <div class="subject-dot" style="background:{{ s.color }}"></div>
+        <div style="min-width:0">
+          <div class="subject-name">{{ s.name }}</div>
+          <div class="subject-code">{{ s.code }}</div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="pct-ring" style="color:{% if s.attendance_status=='safe' %}var(--green){% elif s.attendance_status=='warning' %}var(--yellow){% else %}var(--red){% endif %}" id="pct-{{ s.id }}">{{ s.attendance_percentage }}%</div>
+        <span class="badge badge-{{ s.attendance_status }}" id="badge-{{ s.id }}">{{ s.attendance_status.upper() }}</span>
+      </div>
+    </div>
+
+    <div class="progress-bar" style="margin-bottom:12px">
+      <div class="progress-fill fill-{{ s.attendance_status }}" id="bar-{{ s.id }}" style="width:{{ s.attendance_percentage }}%"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;text-align:center">
+      <div style="background:var(--bg3);border-radius:8px;padding:8px">
+        <div style="font-size:16px;font-weight:700" id="total-{{ s.id }}">{{ s.total_classes }}</div>
+        <div style="font-size:10px;color:var(--text3)">Total</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px">
+        <div style="font-size:16px;font-weight:700;color:var(--green)" id="attended-{{ s.id }}">{{ s.attended_classes }}</div>
+        <div style="font-size:10px;color:var(--text3)">Attended</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px">
+        <div style="font-size:16px;font-weight:700;color:{% if s.safe_to_miss > 0 %}var(--green){% else %}var(--red){% endif %}" id="safe-{{ s.id }}">{{ s.safe_to_miss }}</div>
+        <div style="font-size:10px;color:var(--text3)">Can Miss</div>
+      </div>
+    </div>
+
+    {% if s.classes_to_attend > 0 %}
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px;font-size:11px;color:var(--red);margin-bottom:10px" id="warning-{{ s.id }}">
+      ⚠️ Attend <strong>{{ s.classes_to_attend }}</strong> consecutive classes to reach {{ s.min_attendance }}%
+    </div>
+    {% else %}
+    <div style="display:none" id="warning-{{ s.id }}"></div>
+    {% endif %}
+
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="markAttendance({{ s.id }}, 1, 1)">✅ Present</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="markAttendance({{ s.id }}, 1, 0)">❌ Absent</button>
+      <a href="{{ url_for('attendance.subject_detail', subject_id=s.id) }}" class="btn btn-ghost btn-sm btn-icon">📈</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Quick mark date selector -->
+<div style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  <span style="font-size:12px;color:var(--text3)">Marking for date:</span>
+  <input type="date" id="markDate" class="form-input" style="width:160px;padding:6px 10px;font-size:12px" value="{{ '' }}">
+</div>
+{% endif %}
+
+<!-- Bulk Modal -->
+<div id="bulkModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;align-items:center;justify-content:center">
+  <div class="card" style="width:90%;max-width:500px;max-height:80vh;overflow-y:auto">
+    <div class="card-header">
+      <div class="card-title">📥 Bulk Attendance Update</div>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bulkModal').style.display='none'">✕</button>
+    </div>
+    <div id="bulkContent">
+      {% for s in subjects %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:500;flex:1">{{ s.name[:30] }}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="form-input form-select" id="bulk-{{ s.id }}" style="width:100px;padding:4px 8px;font-size:12px">
+            <option value="1,1">Present</option>
+            <option value="1,0">Absent</option>
+            <option value="2,2">2 Present</option>
+            <option value="2,1">2 (1 miss)</option>
+            <option value="2,0">2 Absent</option>
+            <option value="0,0">No Class</option>
+          </select>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="submitBulk()">Submit All</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('bulkModal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+const subjects = {{ subjects | map(attribute='id') | list | tojson }};
+
+function getMarkDate() {
+  return document.getElementById('markDate').value || new Date().toISOString().split('T')[0];
+}
+
+// Set today's date
+document.getElementById('markDate') && (document.getElementById('markDate').value = new Date().toISOString().split('T')[0]);
+
+async function markAttendance(subjectId, total, attended) {
+  const fd = new FormData();
+  fd.append('subject_id', subjectId);
+  fd.append('total', total);
+  fd.append('attended', attended);
+  fd.append('date', getMarkDate());
+  fd.append('csrf_token', CSRF);
+  const r = await fetch('/attendance/mark', {method:'POST', body: fd});
+  const d = await r.json();
+  if(d.success) {
+    document.getElementById('pct-' + subjectId).textContent = d.percentage + '%';
+    const badge = document.getElementById('badge-' + subjectId);
+    badge.textContent = d.status.toUpperCase();
+    badge.className = 'badge badge-' + d.status;
+    const bar = document.getElementById('bar-' + subjectId);
+    bar.style.width = d.percentage + '%';
+    bar.className = 'progress-fill fill-' + d.status;
+    const pct = document.getElementById('pct-' + subjectId);
+    const colors = {safe:'var(--green)', warning:'var(--yellow)', critical:'var(--red)'};
+    pct.style.color = colors[d.status];
+    document.getElementById('safe-' + subjectId).textContent = d.safe_to_miss;
+    // flash feedback
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = attended ? '✓ Marked!' : '✗ Marked!';
+    setTimeout(() => btn.textContent = orig, 1200);
+  }
+}
+
+async function submitBulk() {
+  const records = [];
+  {{ subjects | tojson }};
+  {% for s in subjects %}
+  const val{{ s.id }} = document.getElementById('bulk-{{ s.id }}').value.split(',');
+  if(val{{ s.id }}[0] !== '0') records.push({subject_id: {{ s.id }}, total: parseInt(val{{ s.id }}[0]), attended: parseInt(val{{ s.id }}[1])});
+  {% endfor %}
+  await fetch('/attendance/bulk-update', {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:JSON.stringify({records})});
+  document.getElementById('bulkModal').style.display='none';
+  location.reload();
+}
+</script>
+{% endblock %}
+{% endblock %}

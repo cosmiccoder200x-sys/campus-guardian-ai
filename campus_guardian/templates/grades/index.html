@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Grade Predictor{% endblock %}
+{% block page_title %}Grade Predictor AI{% endblock %}
+{% block content %}
+<div class="stats-grid" style="margin-bottom:20px">
+  <div class="stat-card" style="--accent-color:var(--accent)">
+    <div class="stat-value">{{ predicted_sgpa }}</div>
+    <div class="stat-label">Predicted SGPA</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--green)">
+    <div class="stat-value">{{ grade_data | selectattr('grade','equalto','S') | list | length }}</div>
+    <div class="stat-label">S Grade Subjects</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--yellow)">
+    <div class="stat-value">{{ grade_data | selectattr('grade','in',['A+','A']) | list | length }}</div>
+    <div class="stat-label">A+/A Grade Subjects</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--red)">
+    <div class="stat-value">{{ grade_data | selectattr('grade','equalto','F') | list | length }}</div>
+    <div class="stat-label">Needs Attention</div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">📊 Predicted vs Target (S Grade)</div>
+    <canvas id="gradeBarChart" height="200"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">🎯 Grade Distribution</div>
+    <canvas id="gradePieChart" height="200"></canvas>
+  </div>
+</div>
+
+{% if not grade_data %}
+<div class="card" style="text-align:center;padding:48px">
+  <div style="font-size:40px;margin-bottom:12px">📊</div>
+  <a href="{{ url_for('dashboard.setup') }}" class="btn btn-primary">Load Subjects First</a>
+</div>
+{% else %}
+{% for g in grade_data %}
+<div class="card" style="margin-bottom:14px" id="grade-card-{{ g.subject.id }}">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:15px;font-weight:700">{{ g.subject.name }}</div>
+      <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace">{{ g.subject.code }} · {{ g.subject.credits }} credits · CIA {{ g.subject.cia_marks }}% / ESE {{ g.subject.ese_marks }}%</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="text-align:center">
+        <div style="font-size:32px;font-weight:900;letter-spacing:-1px" id="grade-{{ g.subject.id }}">{{ g.grade }}</div>
+        <div style="font-size:11px;color:var(--text3)">Predicted</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:24px;font-weight:800" id="gp-{{ g.subject.id }}">{{ g.gp }}</div>
+        <div style="font-size:11px;color:var(--text3)">Grade Points</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:24px;font-weight:800;color:var(--accent)" id="predicted-{{ g.subject.id }}">{{ g.predicted }}%</div>
+        <div style="font-size:11px;color:var(--text3)">Total</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px">
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">CIA Total</div>
+      <div style="font-size:16px;font-weight:700" id="cia-{{ g.subject.id }}">{{ g.record.cia_total }}/{{ g.record.cia_max }}</div>
+    </div>
+    {% for target_grade, target_val in g.targets.items() %}
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">For {{ target_grade }}</div>
+      <div style="font-size:16px;font-weight:700;color:{% if target_val is none %}var(--green){% elif target_val > g.record.ese_max %}var(--red){% else %}var(--accent){% endif %}" id="need-{{ target_grade }}-{{ g.subject.id }}">{% if target_val is none %}Done ✓{% elif target_val > g.record.ese_max %}Not possible{% else %}{{ target_val }}/{{ g.record.ese_max }}{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <details>
+    <summary style="cursor:pointer;font-size:12px;color:var(--text2);font-weight:500;padding:4px 0">✏️ Update Marks</summary>
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px" id="form-{{ g.subject.id }}">
+      <div>
+        <label class="form-label">Series Test 1 / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="st1-{{ g.subject.id }}" value="{{ g.record.series_test1 }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="st1m-{{ g.subject.id }}" value="{{ g.record.series_test1_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Series Test 2 / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="st2-{{ g.subject.id }}" value="{{ g.record.series_test2 }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="st2m-{{ g.subject.id }}" value="{{ g.record.series_test2_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Assignment / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="asgn-{{ g.subject.id }}" value="{{ g.record.assignment }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="asgnm-{{ g.subject.id }}" value="{{ g.record.assignment_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Quiz / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="quiz-{{ g.subject.id }}" value="{{ g.record.quiz }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="quizm-{{ g.subject.id }}" value="{{ g.record.quiz_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Lab Marks / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="lab-{{ g.subject.id }}" value="{{ g.record.lab_marks }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="labm-{{ g.subject.id }}" value="{{ g.record.lab_marks_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Attendance Marks / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="att-{{ g.subject.id }}" value="{{ g.record.attendance_marks }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="attm-{{ g.subject.id }}" value="{{ g.record.attendance_marks_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">ESE Marks / Max</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-input" type="number" step="0.5" min="0" id="ese-{{ g.subject.id }}" value="{{ g.record.ese_marks }}" style="padding:6px 8px">
+          <input class="form-input" type="number" step="0.5" min="0" id="esem-{{ g.subject.id }}" value="{{ g.record.ese_max }}" style="padding:6px 8px;width:60px">
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary btn-sm" style="width:100%" onclick="updateGrade({{ g.subject.id }})">Update →</button>
+      </div>
+    </div>
+  </details>
+</div>
+{% endfor %}
+{% endif %}
+
+{% block scripts %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+const textColor = isDark ? '#9090a8' : '#5a5a78';
+
+const labels = {{ chart_labels | tojson }};
+const predicted = {{ chart_predicted | tojson }};
+const neededS = {{ chart_needed_s | tojson }};
+
+if(labels.length && document.getElementById('gradeBarChart')) {
+  new Chart(document.getElementById('gradeBarChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Current', data: predicted, backgroundColor: 'rgba(124,107,255,0.7)', borderRadius: 4 },
+        { label: 'Needed for S', data: neededS, backgroundColor: 'rgba(34,197,94,0.4)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: textColor, boxWidth: 12 } } },
+      scales: {
+        y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: textColor } },
+        x: { grid: { display: false }, ticks: { color: textColor, maxRotation: 30 } }
+      }
+    }
+  });
+}
+
+const gradeData = {{ grade_data | map(attribute='grade') | list | tojson }};
+const gradeCounts = {};
+gradeData.forEach(g => gradeCounts[g] = (gradeCounts[g]||0)+1);
+if(document.getElementById('gradePieChart') && Object.keys(gradeCounts).length) {
+  const gradeColors = {S:'#22c55e','A+':'#06b6d4',A:'#3b82f6','B+':'#8b5cf6',B:'#f59e0b',C:'#f97316',D:'#ef4444',F:'#dc2626'};
+  new Chart(document.getElementById('gradePieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(gradeCounts),
+      datasets: [{ data: Object.values(gradeCounts), backgroundColor: Object.keys(gradeCounts).map(g => gradeColors[g]||'#666'), borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: textColor } } }
+    }
+  });
+}
+
+async function updateGrade(sid) {
+  const data = {
+    series_test1: +document.getElementById('st1-'+sid).value,
+    series_test1_max: +document.getElementById('st1m-'+sid).value,
+    series_test2: +document.getElementById('st2-'+sid).value,
+    series_test2_max: +document.getElementById('st2m-'+sid).value,
+    assignment: +document.getElementById('asgn-'+sid).value,
+    assignment_max: +document.getElementById('asgnm-'+sid).value,
+    quiz: +document.getElementById('quiz-'+sid).value,
+    quiz_max: +document.getElementById('quizm-'+sid).value,
+    lab_marks: +document.getElementById('lab-'+sid).value,
+    lab_marks_max: +document.getElementById('labm-'+sid).value,
+    attendance_marks: +document.getElementById('att-'+sid).value,
+    attendance_marks_max: +document.getElementById('attm-'+sid).value,
+    ese_marks: +document.getElementById('ese-'+sid).value,
+    ese_max: +document.getElementById('esem-'+sid).value,
+  };
+  const r = await fetch('/grades/update/'+sid, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:JSON.stringify(data)});
+  const d = await r.json();
+  if(d.success) {
+    document.getElementById('grade-'+sid).textContent = d.grade;
+    document.getElementById('gp-'+sid).textContent = d.gp;
+    document.getElementById('predicted-'+sid).textContent = d.predicted.toFixed(1) + '%';
+    document.getElementById('cia-'+sid).textContent = d.cia_total.toFixed(1);
+    for(const [g, v] of Object.entries(d.targets)) {
+      const el = document.getElementById('need-'+g+'-'+sid);
+      if(el) el.textContent = v === null ? 'Done ✓' : (v > data.ese_max ? 'Not possible' : v + '/' + data.ese_max);
+    }
+  }
+}
+</script>
+{% endblock %}
+{% endblock %}

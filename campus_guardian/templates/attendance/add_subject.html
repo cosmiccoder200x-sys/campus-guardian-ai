@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Add Subject{% endblock %}
+{% block page_title %}Add Subject{% endblock %}
+{% block content %}
+<div class="card" style="max-width:500px;margin:0 auto">
+  <div class="card-header">
+    <div class="card-title">➕ Add Custom Subject</div>
+  </div>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label class="form-label">Subject Name *</label>
+      <input class="form-input" type="text" name="name" placeholder="e.g. Advanced Mathematics" required>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Subject Code</label>
+        <input class="form-input" type="text" name="code" placeholder="e.g. 24MAP301">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Credits</label>
+        <input class="form-input" type="number" name="credits" value="3" min="1" max="7">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">CIA Marks (%)</label>
+        <input class="form-input" type="number" name="cia_marks" value="60" min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ESE Marks (%)</label>
+        <input class="form-input" type="number" name="ese_marks" value="40" min="0" max="100">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Min Attendance (%)</label>
+        <input class="form-input" type="number" name="min_attendance" value="75" min="1" max="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input class="form-input" type="color" name="color" value="#6366f1" style="height:42px;padding:4px">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button type="submit" class="btn btn-primary" style="flex:1">Add Subject</button>
+      <a href="{{ url_for('attendance.index') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Campus Guardian{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card" style="--accent-color:var(--accent)">
+    <div class="stat-value">{{ overall_pct }}%</div>
+    <div class="stat-label">Overall Attendance</div>
+    <div class="stat-sub">{{ attended }}/{{ total_classes }} classes</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--green)">
+    <div class="stat-value">{{ safe }}</div>
+    <div class="stat-label">Safe Subjects</div>
+    <div class="stat-sub">Above 85%</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--yellow)">
+    <div class="stat-value">{{ warning }}</div>
+    <div class="stat-label">Warning</div>
+    <div class="stat-sub">75–84%</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--red)">
+    <div class="stat-value">{{ critical }}</div>
+    <div class="stat-label">Critical</div>
+    <div class="stat-sub">Below 75%</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--purple)">
+    <div class="stat-value">{{ predicted_sgpa }}</div>
+    <div class="stat-label">Predicted SGPA</div>
+    <div class="stat-sub">S{{ current_user.current_semester }}</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--cyan)">
+    <div class="stat-value">{{ total_subjects }}</div>
+    <div class="stat-label">Subjects</div>
+    <div class="stat-sub">Semester {{ current_user.current_semester }}</div>
+  </div>
+</div>
+
+{% if not subjects %}
+<div class="card" style="text-align:center;padding:48px">
+  <div style="font-size:48px;margin-bottom:16px">📚</div>
+  <div style="font-size:18px;font-weight:700;margin-bottom:8px">Welcome, {{ current_user.name.split()[0] }}!</div>
+  <div style="color:var(--text2);margin-bottom:24px">Load your S{{ current_user.current_semester }} subjects to get started</div>
+  <a href="{{ url_for('dashboard.setup') }}" class="btn btn-primary">Load My Subjects →</a>
+</div>
+{% else %}
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Attendance Overview</div><div class="card-sub">S{{ current_user.current_semester }} subjects</div></div>
+    </div>
+    <canvas id="attendanceChart" height="200"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Grade Predictions</div><div class="card-sub">Predicted SGPA: {{ predicted_sgpa }}</div></div>
+    </div>
+    <canvas id="gradeChart" height="200"></canvas>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📋 Subject Status</div>
+      <a href="{{ url_for('attendance.index') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    {% for s in subjects %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:8px;height:8px;border-radius:50%;background:{% if s.attendance_status=='safe' %}var(--green){% elif s.attendance_status=='warning' %}var(--yellow){% else %}var(--red){% endif %};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.name }}</div>
+        <div class="progress-bar" style="margin-top:4px">
+          <div class="progress-fill fill-{{ s.attendance_status }}" style="width:{{ s.attendance_percentage }}%"></div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:{% if s.attendance_status=='safe' %}var(--green){% elif s.attendance_status=='warning' %}var(--yellow){% else %}var(--red){% endif %};flex-shrink:0">{{ s.attendance_percentage }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🎯 Grade Summary</div>
+      <a href="{{ url_for('grades.index') }}" class="btn btn-ghost btn-sm">Update Marks</a>
+    </div>
+    {% if grade_data %}
+    {% for g in grade_data %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.subject }}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="font-size:11px;color:var(--text3)">{{ g.marks }}%</span>
+        <span class="badge badge-accent" style="font-size:11px">{{ g.grade }}</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Enter marks in Grade Predictor to see predictions</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% block scripts %}
+<script>
+const labels = {{ chart_labels | tojson }};
+const data = {{ chart_data | tojson }};
+const colors = {{ chart_colors | tojson }};
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+const textColor = isDark ? '#9090a8' : '#5a5a78';
+
+if(document.getElementById('attendanceChart')) {
+  new Chart(document.getElementById('attendanceChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors.map(c => c + '90'),
+        borderColor: colors,
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: textColor, callback: v => v+'%' } },
+        x: { grid: { display: false }, ticks: { color: textColor, maxRotation: 30 } }
+      }
+    }
+  });
+}
+
+const gradeLabels = {{ (grade_data | map(attribute='subject') | list) | tojson }};
+const gradeMarks = {{ (grade_data | map(attribute='marks') | list) | tojson }};
+if(document.getElementById('gradeChart') && gradeLabels.length) {
+  new Chart(document.getElementById('gradeChart'), {
+    type: 'radar',
+    data: {
+      labels: gradeLabels,
+      datasets: [{
+        data: gradeMarks,
+        backgroundColor: 'rgba(124,107,255,0.15)',
+        borderColor: '#7c6bff',
+        borderWidth: 2,
+        pointBackgroundColor: '#7c6bff',
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          grid: { color: gridColor },
+          ticks: { display: false },
+          pointLabels: { color: textColor, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}
+{% endblock %}

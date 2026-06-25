@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block content %}
+<div class="card" style="max-width:500px">
+  <div class="card-title" style="margin-bottom:20px">⚙️ Account Settings</div>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" type="text" name="name" value="{{ current_user.name }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" value="{{ current_user.email }}" disabled style="opacity:0.5">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Current Semester</label>
+      <select class="form-input form-select" name="semester">
+        {% for i in range(3,9) %}<option value="{{ i }}" {% if current_user.current_semester == i %}selected{% endif %}>Semester {{ i }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">College</label>
+      <input class="form-input" type="text" value="{{ current_user.college }}" disabled style="opacity:0.5">
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </form>
+</div>
+{% endblock %}

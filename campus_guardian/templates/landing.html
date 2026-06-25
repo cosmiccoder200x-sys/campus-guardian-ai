@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Guardian AI — Smart Academic Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#16161f;--border:#2a2a3a;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6bff;--purple:#8b5cf6;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;border-bottom:1px solid var(--border);background:rgba(10,10,15,0.8);backdrop-filter:blur(10px);position:sticky;top:0;z-index:10}
+.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#7c6bff,#8b5cf6);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.nav-links{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;text-decoration:none}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--card);color:var(--text)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+.hero{text-align:center;padding:90px 24px 60px;max-width:760px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,107,255,0.1);border:1px solid rgba(124,107,255,0.3);border-radius:20px;padding:5px 14px;font-size:12px;color:var(--accent);margin-bottom:24px;font-weight:500}
+.hero h1{font-size:clamp(36px,6vw,64px);font-weight:900;letter-spacing:-2px;line-height:1.05;margin-bottom:20px}
+.hero h1 span{background:linear-gradient(135deg,#7c6bff,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:16px;color:var(--text2);line-height:1.7;margin-bottom:36px;max-width:520px;margin-left:auto;margin-right:auto}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.features{padding:60px 40px;max-width:1100px;margin:0 auto}
+.section-label{text-align:center;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.section-title{text-align:center;font-size:clamp(24px,4vw,36px);font-weight:800;letter-spacing:-1px;margin-bottom:8px}
+.section-sub{text-align:center;color:var(--text2);font-size:14px;margin-bottom:48px}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.feature-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative;overflow:hidden;transition:border-color 0.2s}
+.feature-card:hover{border-color:var(--accent)}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.fc1::before{background:linear-gradient(90deg,#7c6bff,#8b5cf6)}
+.fc2::before{background:linear-gradient(90deg,#06b6d4,#10b981)}
+.fc3::before{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.feature-icon{font-size:36px;margin-bottom:16px}
+.feature-title{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-0.3px}
+.feature-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.feature-bullets{list-style:none}
+.feature-bullets li{font-size:12px;color:var(--text2);padding:4px 0;display:flex;align-items:center;gap:8px}
+.feature-bullets li::before{content:'→';color:var(--accent);font-weight:600}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:0 40px;max-width:1100px;margin:0 auto 60px}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center}
+.stat-num{font-size:36px;font-weight:900;letter-spacing:-2px}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:4px}
+.cta{text-align:center;padding:80px 24px;background:linear-gradient(180deg,transparent,rgba(124,107,255,0.05))}
+.cta h2{font-size:clamp(28px,5vw,48px);font-weight:900;letter-spacing:-1.5px;margin-bottom:16px}
+.cta p{color:var(--text2);margin-bottom:32px;font-size:15px}
+footer{text-align:center;padding:24px;color:var(--text2);font-size:12px;border-top:1px solid var(--border)}
+@media(max-width:600px){.nav{padding:16px 20px}.features,.stats-row{padding:40px 20px}.stats-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="logo"><div class="logo-icon">🛡️</div>Campus Guardian AI</div>
+  <div class="nav-links">
+    <a href="/login" class="btn btn-ghost">Log In</a>
+    <a href="/register" class="btn btn-primary">Get Started →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">🎓 Built for TKM College · KTU 2024 Scheme</div>
+  <h1>Your AI-Powered<br><span>Academic Guardian</span></h1>
+  <p>Track attendance, predict grades, and plan bunks intelligently. Never fail attendance, always know your SGPA — all in one dashboard.</p>
+  <div class="hero-btns">
+    <a href="/register" class="btn btn-primary" style="padding:12px 28px;font-size:14px">🚀 Start Free</a>
+    <a href="/login" class="btn btn-ghost" style="padding:12px 28px;font-size:14px">Sign In</a>
+  </div>
+</section>
+
+<div class="stats-row">
+  <div class="stat-box"><div class="stat-num" style="color:#7c6bff">75%</div><div class="stat-lbl">KTU Min Attendance</div></div>
+  <div class="stat-box"><div class="stat-num" style="color:#22c55e">S3–S8</div><div class="stat-lbl">All Semesters Covered</div></div>
+  <div class="stat-box"><div class="stat-num" style="color:#06b6d4">AI</div><div class="stat-lbl">Powered Assistant</div></div>
+  <div class="stat-box"><div class="stat-num" style="color:#f59e0b">10</div><div class="stat-lbl">CGPA Target Support</div></div>
+</div>
+
+<section class="features">
+  <div class="section-label">Features</div>
+  <h2 class="section-title">Everything you need to ace your semester</h2>
+  <p class="section-sub">Pre-loaded with TKM College S3–S8 KTU 2024 scheme subjects</p>
+  <div class="features-grid">
+    <div class="feature-card fc1">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">Attendance Guardian</div>
+      <div class="feature-desc">Real-time attendance tracking with smart risk detection and forecasting.</div>
+      <ul class="feature-bullets">
+        <li>Green/Yellow/Red risk levels</li>
+        <li>Safe classes to miss calculator</li>
+        <li>Consecutive attendance needed</li>
+        <li>30-day forecast charts</li>
+      </ul>
+    </div>
+    <div class="feature-card fc2">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Grade Predictor AI</div>
+      <div class="feature-desc">Enter CIA marks and instantly see predicted SGPA and target scores.</div>
+      <ul class="feature-bullets">
+        <li>KTU grading scale (S to F)</li>
+        <li>Marks needed for S/A+/A/B+</li>
+        <li>SGPA prediction dashboard</li>
+        <li>Subject improvement alerts</li>
+      </ul>
+    </div>
+    <div class="feature-card fc3">
+      <div class="feature-icon">🗓️</div>
+      <div class="feature-title">Smart Bunk Planner</div>
+      <div class="feature-desc">AI-powered timetable analysis to safely plan your leaves.</div>
+      <ul class="feature-bullets">
+        <li>Today's safe/unsafe classes</li>
+        <li>Weekly leave recommendations</li>
+        <li>Future attendance projection</li>
+        <li>AI chat: "Can I bunk tomorrow?"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <h2>Start your semester right 🎯</h2>
+  <p>Join students from TKM College using Campus Guardian to stay on top of academics.</p>
+  <a href="/register" class="btn btn-primary" style="padding:14px 36px;font-size:15px">Create Free Account →</a>
+</section>
+
+<footer>Built for TKM College of Engineering, Kollam · KTU 2024 Scheme · ECE/EEE Program</footer>
+</body>
+</html>
