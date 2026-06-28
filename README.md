@@ -14,7 +14,7 @@
 
 ```bash
 git clone <repo>
-cd campus_guardian
+cd campus-guardian-ai
 pip install -r requirements.txt
 cp .env.example .env
 python app.py

@@ -60,6 +60,7 @@ Be specific, use the actual data, give actionable advice. Keep responses concise
             data=payload,
             headers={
                 'Content-Type': 'application/json',
+                'x-api-key': os.environ.get('ANTHROPIC_API_KEY', ''),
                 'anthropic-version': '2023-06-01'
             }
         )
